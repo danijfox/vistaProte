@@ -83,6 +83,18 @@ const Summary = ({ formData, setActiveTab }) => {
     setActiveTab(section)
   }
 
+  // Validar campos obligatorios
+  const isFormValid = () => {
+    return (
+      personalData?.nombre && 
+      personalData?.apellidos && 
+      personalData?.edad && 
+      personalData?.fechaNacimiento && 
+      personalData?.motivo && 
+      signature
+    )
+  }
+
   if (showSuccess) {
     return (
       <div className="max-w-2xl mx-auto p-4">
@@ -139,7 +151,11 @@ const Summary = ({ formData, setActiveTab }) => {
 
         <div className="mb-6">
           <h3 className="font-bold mb-2">Datos Personales</h3>
-          {!personalData?.nombre ? (
+          {!personalData?.nombre || 
+           !personalData?.apellidos || 
+           !personalData?.edad || 
+           !personalData?.fechaNacimiento || 
+           !personalData?.motivo ? (
             <div className="text-red-500">
               ⚠️ Falta completar datos personales
               <button
@@ -161,17 +177,9 @@ const Summary = ({ formData, setActiveTab }) => {
         </div>
 
         <div className="mb-6">
-          <h3 className="font-bold mb-2">Imagen</h3>
+          <h3 className="font-bold mb-2">Imagen (Opcional)</h3>
           {!image ? (
-            <div className="text-red-500">
-              ⚠️ Falta subir imagen
-              <button
-                onClick={() => goToSection('image')}
-                className="ml-2 text-blue-500 underline"
-              >
-                Subir
-              </button>
-            </div>
+            <p className="text-gray-500 italic">No se ha incluido imagen</p>
           ) : (
             <img src={image} alt="Uploaded" className="w-32 h-32 object-cover rounded" />
           )}
@@ -196,9 +204,9 @@ const Summary = ({ formData, setActiveTab }) => {
 
         <button
           onClick={generatePDF}
-          disabled={!personalData?.nombre || !image || !signature || isGenerating}
+          disabled={!isFormValid() || isGenerating}
           className={`w-full py-2 px-4 rounded flex items-center justify-center ${
-            !personalData?.nombre || !image || !signature || isGenerating
+            !isFormValid() || isGenerating
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-blue-500 hover:bg-blue-600 text-white'
           }`}
