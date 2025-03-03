@@ -1,35 +1,75 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { jsPDF } from 'jspdf'
 
 const Summary = ({ formData, setActiveTab }) => {
   const { personalData, image, signature } = formData
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState(null)
 
-  const generatePDF = () => {
-    const doc = new jsPDF()
-    
-    // Añadir título
-    doc.setFontSize(20)
-    doc.text('Registro de Visita Médica', 20, 20)
-    
-    // Añadir datos personales
-    doc.setFontSize(12)
-    doc.text(`Nombre: ${personalData.nombre || ''}`, 20, 40)
-    doc.text(`Apellidos: ${personalData.apellidos || ''}`, 20, 50)
-    doc.text(`Edad: ${personalData.edad || ''}`, 20, 60)
-    doc.text(`Fecha de Nacimiento: ${personalData.fechaNacimiento || ''}`, 20, 70)
-    doc.text(`Motivo de la visita: ${personalData.motivo || ''}`, 20, 80)
+  const generatePDF = async () => {
+    try {
+      setIsGenerating(true)
+      setError(null)
 
-    // Añadir imagen si existe
-    if (image) {
-      doc.addImage(image, 'JPEG', 20, 100, 80, 60)
+      // Crear nuevo documento PDF
+      const doc = new jsPDF()
+      
+      // Configurar fuente para caracteres españoles
+      doc.setFont('helvetica')
+      
+      // Título
+      doc.setFontSize(20)
+      doc.text('Registro de Visita Médica', 20, 20)
+      
+      // Datos personales
+      doc.setFontSize(12)
+      let yPos = 40
+      
+      const addText = (text, y) => {
+        doc.text(text, 20, y)
+        return y + 10
+      }
+
+      yPos = addText(`Nombre: ${personalData.nombre || ''}`, yPos)
+      yPos = addText(`Apellidos: ${personalData.apellidos || ''}`, yPos)
+      yPos = addText(`Edad: ${personalData.edad || ''}`, yPos)
+      yPos = addText(`Fecha de Nacimiento: ${personalData.fechaNacimiento || ''}`, yPos)
+      
+      // Motivo de la visita (con saltos de línea si es necesario)
+      if (personalData.motivo) {
+        yPos = addText('Motivo de la visita:', yPos)
+        const motivo = doc.splitTextToSize(personalData.motivo, 170)
+        doc.text(motivo, 20, yPos)
+        yPos += (motivo.length * 7)
+      }
+
+      // Añadir imagen si existe
+      if (image) {
+        try {
+          doc.addImage(image, 'JPEG', 20, yPos, 80, 60)
+          yPos += 70
+        } catch (e) {
+          console.error('Error al añadir la imagen:', e)
+        }
+      }
+
+      // Añadir firma si existe
+      if (signature) {
+        try {
+          doc.addImage(signature, 'PNG', 20, yPos, 80, 40)
+        } catch (e) {
+          console.error('Error al añadir la firma:', e)
+        }
+      }
+
+      // Guardar el PDF
+      doc.save('registro-visita-medica.pdf')
+      setIsGenerating(false)
+    } catch (err) {
+      console.error('Error al generar PDF:', err)
+      setError('Error al generar el PDF. Por favor, inténtelo de nuevo.')
+      setIsGenerating(false)
     }
-
-    // Añadir firma si existe
-    if (signature) {
-      doc.addImage(signature, 'PNG', 20, 170, 80, 40)
-    }
-
-    doc.save('registro-visita-medica.pdf')
   }
 
   const goToSection = (section) => {
@@ -40,6 +80,12 @@ const Summary = ({ formData, setActiveTab }) => {
     <div className="max-w-2xl mx-auto p-4">
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-bold mb-4">Resumen de la Visita</h2>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
 
         <div className="mb-6">
           <h3 className="font-bold mb-2">Datos Personales</h3>
@@ -54,12 +100,12 @@ const Summary = ({ formData, setActiveTab }) => {
               </button>
             </div>
           ) : (
-            <div>
-              <p>Nombre: {personalData.nombre}</p>
-              <p>Apellidos: {personalData.apellidos}</p>
-              <p>Edad: {personalData.edad}</p>
-              <p>Fecha de Nacimiento: {personalData.fechaNacimiento}</p>
-              <p>Motivo: {personalData.motivo}</p>
+            <div className="bg-gray-50 p-3 rounded">
+              <p><span className="font-semibold">Nombre:</span> {personalData.nombre}</p>
+              <p><span className="font-semibold">Apellidos:</span> {personalData.apellidos}</p>
+              <p><span className="font-semibold">Edad:</span> {personalData.edad}</p>
+              <p><span className="font-semibold">Fecha de Nacimiento:</span> {personalData.fechaNacimiento}</p>
+              <p><span className="font-semibold">Motivo:</span> {personalData.motivo}</p>
             </div>
           )}
         </div>
@@ -100,14 +146,24 @@ const Summary = ({ formData, setActiveTab }) => {
 
         <button
           onClick={generatePDF}
-          disabled={!personalData?.nombre || !image || !signature}
-          className={`w-full py-2 px-4 rounded ${
-            !personalData?.nombre || !image || !signature
+          disabled={!personalData?.nombre || !image || !signature || isGenerating}
+          className={`w-full py-2 px-4 rounded flex items-center justify-center ${
+            !personalData?.nombre || !image || !signature || isGenerating
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-blue-500 hover:bg-blue-600 text-white'
           }`}
         >
-          Generar PDF
+          {isGenerating ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Generando PDF...
+            </>
+          ) : (
+            'Generar PDF'
+          )}
         </button>
       </div>
     </div>
