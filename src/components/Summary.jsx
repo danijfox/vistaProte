@@ -5,6 +5,12 @@ const Summary = ({ formData, setActiveTab }) => {
   const { personalData, image, signature } = formData
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState(null)
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  const resetForm = () => {
+    // Reiniciar al estado inicial
+    window.location.reload()
+  }
 
   const generatePDF = async () => {
     try {
@@ -65,6 +71,7 @@ const Summary = ({ formData, setActiveTab }) => {
       // Guardar el PDF
       doc.save('registro-visita-medica.pdf')
       setIsGenerating(false)
+      setShowSuccess(true)
     } catch (err) {
       console.error('Error al generar PDF:', err)
       setError('Error al generar el PDF. Por favor, inténtelo de nuevo.')
@@ -74,6 +81,49 @@ const Summary = ({ formData, setActiveTab }) => {
 
   const goToSection = (section) => {
     setActiveTab(section)
+  }
+
+  if (showSuccess) {
+    return (
+      <div className="max-w-2xl mx-auto p-4">
+        <div className="bg-white shadow rounded-lg p-8 text-center">
+          <div className="mb-6">
+            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <svg 
+                className="w-12 h-12 text-green-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            ¡PDF Generado con Éxito!
+          </h2>
+          
+          <p className="text-gray-600 mb-8">
+            El registro de la visita médica se ha descargado correctamente en su dispositivo.
+          </p>
+
+          <div className="space-y-4">
+            <button
+              onClick={resetForm}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg font-medium shadow-sm transition-colors"
+            >
+              Iniciar Nuevo Registro
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
